@@ -82,6 +82,6 @@ def importDeformers(fileName):
 
 '''
 TO DO:
-Consider ordering of deformers on geo when rebuilding.
+Consider ordering of deformers on geo when rebuilding. This is probably quite important.
 
 '''
