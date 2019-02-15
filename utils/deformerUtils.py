@@ -36,13 +36,16 @@ def saveDeformers():
             deformerDict[key] = {}
             deformerDict[key]['nlType'] = getNonlinearType(dfm)
             deformerDict[key]['mtx'] = pm.xform(handle, q=1, ws=1, m=1)
-            deformerDict[key]['parent'] = handle.getParent().name()
+            parent = None
+            if handle.getParent():
+                parent = handle.getParent().name()
+            deformerDict[key]['parent'] = parent
             deformerDict[key]['params'] = {}
             deformerDict[key]['geo'] = [geo for geo in pm.nonLinear(dfm, q=1, geometry=1)]
             for geo in deformerDict[key]['geo']:
                 fileName = '%s_%s_weights.xml' % (geo, key)
-                pm.select(geo)
-                pm.deformerWeights(fileName, export=1, deformer=dfm, path=saveFileDir)
+                toSkip = [node.name() for node in dfms if not node == dfm]
+                pm.deformerWeights(fileName, export=1, sh=geo, skip=toSkip, path=saveFileDir)
             attrs = [a for a in pm.listAttr(dfm) if pm.Attribute('%s.%s' % (key, a)).isKeyable() and not 'weight' in a]
             for attr in attrs:
                 deformerDict[key]['params'][attr] = pm.getAttr('%s.%s' % (dfm.name(), attr))
@@ -62,6 +65,8 @@ def importDeformers(fileName):
 
     for key in deformerDict.keys():
         geo = deformerDict[key]['geo']
+        print 'building deformer: %s' % key
+        print '\n\t'.join(geo)
         pm.select(geo)
         dfm = pm.nonLinear(name=key, type=deformerDict[key]['nlType'])
         pm.xform(dfm[1], ws=1, m=deformerDict[key]['mtx'])
@@ -78,10 +83,22 @@ def importDeformers(fileName):
             weightsFile = '%s_%s_weights.xml' % (g, key)
 
             pm.select(g)
-            pm.deformerWeights(weightsFile, im=1, deformer=dfm[0], path=fileDir)
+            print 'weightsFile: %s' % weightsFile
+            try:
+                pm.deformerWeights(weightsFile, im=1, deformer=dfm[0], path=fileDir)
+            except:
+                print 'unable to load weights:\n\tdeformer: %s\n\tshape: %s\n\tweightsFile: %s' % (dfm[0]
+                                                                                                   , g
+                                                                                                   , weightsFile)
 
 '''
 TO DO:
 Consider ordering of deformers on geo when rebuilding. This is probably quite important.
+
+filename='test.xml'
+skippers = [node for node in pm.listHistory(pm.selected()[0]) if type(node) == pm.nodetypes.SkinCluster]
+print skippers
+pm.deformerWeights(filename, ex=True, sh='Icarus_Sandlewstrps_GeoShape', skip=skippers)
+type(pm.PyNode('Icarus_Sandlewstrps_Geo_SkinCluster'))
 
 '''

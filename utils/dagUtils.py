@@ -1,7 +1,7 @@
 import pymel.core as pmc
-import transformUtils
+import xformUtils
 
-reload(transformUtils)
+reload(xformUtils)
 
 ##
 # CONFIG - DICTIONARIES THAT CAN BE DUPLICATED TO CREATE VARIATIONS OF THINGS SUCH AS CONTROL COLOURS
@@ -76,7 +76,7 @@ def addChild(parent, childType, name, zero=1):
             node.setParent(parent)
     if node:
         if zero:
-            transformUtils.align(node, parent)
+            xformUtils.align(node, parent)
         return node
     else:
         return 'addChild: node not created'
@@ -104,7 +104,7 @@ def addParent(child, parentType, name, zero=1):
 
     if node:
         if zero:
-            transformUtils.align(node, child)
+            xformUtils.align(node, child)
         if parent:
             node.setParent(parent)
         child.setParent(node)
