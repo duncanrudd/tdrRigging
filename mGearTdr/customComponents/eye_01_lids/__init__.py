@@ -158,6 +158,8 @@ class Component(component.Main):
         pm.addAttr(host, ln='blink', at=float, k=1, h=0, minValue=0, maxValue=1)
         pm.addAttr(host, ln='blink_height', at=float, k=1, h=0, minValue=0, maxValue=1)
 
+        pm.addAttr(host, ln='auto_lids', at=float, k=1, h=0, minValue=0, maxValue=1)
+
 
     # =====================================================
     # OPERATORS
@@ -237,13 +239,25 @@ class Component(component.Main):
             top_ud_sum = mathUtils.addAngles(topZoneAttr, self.eyeFK_ctl.top_ud,
                                              name=self.getName('top_%s_ud_sum_utl' % zone))
             top_ud_sum.weightB.set(topWeight)
-            top_sum = mathUtils.addAngles(top_ud_sum.output, topSrt.rx.get(),
+
+            top_auto_sum = mathUtils.addAngles(eyeRotDm.outputRotateX, topSrt.rx.get(),
+                                             name=self.getName('top_%s_auto_sum_utl' % zone))
+
+            self.eyeFK_ctl.auto_lids.connect(top_auto_sum.weightA)
+
+            top_sum = mathUtils.addAngles(top_ud_sum.output, top_auto_sum.output,
                                           name=self.getName('top_%s_sum_utl' % zone))
 
             btm_ud_sum = mathUtils.addAngles(btmZoneAttr, self.eyeFK_ctl.btm_ud,
                                              name=self.getName('btm_%s_ud_sum_utl' % zone))
             btm_ud_sum.weightB.set(btmWeight)
-            btm_sum = mathUtils.addAngles(btm_ud_sum.output, btmSrt.rx.get(),
+
+            btm_auto_sum = mathUtils.addAngles(eyeRotDm.outputRotateX, btmSrt.rx.get(),
+                                             name=self.getName('btm_%s_auto_sum_utl' % zone))
+
+            self.eyeFK_ctl.auto_lids.connect(btm_auto_sum.weightA)
+
+            btm_sum = mathUtils.addAngles(btm_ud_sum.output, btm_auto_sum.output,
                                           name=self.getName('btm_%s_sum_utl' % zone))
 
             blink = mathUtils.blendAngles(top_sum.output, btm_sum.output,
@@ -257,8 +271,9 @@ class Component(component.Main):
             btm_blink.output.connect(btmSrt.rx)
 
         zones = ['inner', 'mid', 'outer']
-        if self.side == 'R':
-            zones = ['outer', 'mid', 'inner']
+
+        #if self.side == 'R':
+        #    zones = ['outer', 'mid', 'inner']
 
         for topSrt, btmSrt, zone in zip(self.topLids, self.btmLids, zones):
             _lidsRotationSetup(topSrt, btmSrt, zone)
