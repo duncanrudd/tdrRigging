@@ -1,7 +1,27 @@
 import pymel.core as pm
 import pymel.core.datatypes as dt
 import pymel.util as pmUtil
+import math
 
+
+# --------------------------------------------------------------------------------
+# Arithmetic
+# --------------------------------------------------------------------------------
+
+def addScalar(inputs, name=None, operation=1):
+    node = pm.createNode('plusMinusAverage')
+    node.operation = operation
+    if name:
+        node.rename(name)
+    for index, input in zip(range(len(inputs)), inputs):
+        if type(input) == pm.general.Attribute:
+            input.connect(node.input1D[index])
+        else:
+            node.input1D[index].set(input)
+    return node
+
+def subtractScalar(inputs, name=None):
+    return addScalar(inputs, name, operation=2)
 
 def reverse(input, name=None):
     node = pm.createNode('reverse')
@@ -46,8 +66,6 @@ def blendAngles(inputA, inputB, weightA, weightB, name=None):
     else:
         node.weightB.set(weightB)
     return node
-
-
 
 def getAngleBetweenVectors(v1, v2, vUp, degrees=1):
     '''
@@ -117,9 +135,6 @@ def getMatrixAxisAsVector(mtx, axis):
         row = dt.Vector((mtx.a20, mtx.a21, mtx.a22))
     return row
 
-
-
-
 def multiplyMatrices(mtxList, name=None):
     '''
     Creates a multMatrix node and connects each mtx in mtxList in order
@@ -138,3 +153,57 @@ def decomposeMatrix(mtx, name=None):
         dm.rename(name)
     mtx.connect(dm.inputMatrix)
     return dm
+
+# -----------------------------------------------------------------------
+# VECTOR OPS
+# -----------------------------------------------------------------------
+
+def getStartAndEnd(start=None, end=None):
+    '''
+    Takes either two pynodes, two vectors or two selected nodes and returns their positions
+    '''
+    startPos, endPos = None, None
+    if not start or not end:
+        if len(pm.selected()) == 2:
+            startPos = pm.xform(pm.selected()[0], translation=True, query=True, ws=True)
+            endPos = pm.xform(pm.selected()[1], translation=True, query=True, ws=True)
+    else:
+        if pm.nodetypes.Transform in type(start).__mro__:
+            startPos = pm.xform(start, translation=True, query=True, ws=True)
+        else:
+            startPos = start
+
+        if pm.nodetypes.Transform in type(end).__mro__:
+            endPos = pm.xform(end, translation=True, query=True, ws=True)
+        else:
+            endPos = end
+
+    if not startPos or not endPos:
+        return (None, None)
+    else:
+        return startPos, endPos
+
+def getDistance(start, end):
+    '''
+    Calculates distance between two Transforms using magnitude
+    '''
+
+    def mag(numbers):
+        num = 0
+        for eachNumber in numbers:
+            num += math.pow(eachNumber, 2)
+
+        mag = math.sqrt(num)
+        return mag
+
+    startPos, endPos = getStartAndEnd(start, end)
+
+    if not startPos or not endPos:
+        return 'getDistance: Cannot determine start and end points'
+
+    calc = []
+    calc.append(startPos[0] - endPos[0])
+    calc.append(startPos[1] - endPos[1])
+    calc.append(startPos[2] - endPos[2])
+
+    return mag(calc)
