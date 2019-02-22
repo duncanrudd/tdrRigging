@@ -10,7 +10,7 @@ import math
 
 def addScalar(inputs, name=None, operation=1):
     node = pm.createNode('plusMinusAverage')
-    node.operation = operation
+    node.operation.set(operation)
     if name:
         node.rename(name)
     for index, input in zip(range(len(inputs)), inputs):
@@ -114,6 +114,68 @@ def multiply(input1, input2, name=None):
         mult.input2.set(input2)
     return mult
 
+def multiplyVector(input1, input2, name=None, operation=1):
+    md = pm.createNode('multiplyDivide', name=name)
+    md.operation.set(operation)
+
+    val = 0.0
+    connect = False
+
+    if type(input1) == pm.general.Attribute:
+        val = input1.get()
+        connect = True
+    else:
+        val = input1
+        connect = False
+
+    if type(val) == pm.datatypes.Vector or type(val) == tuple:
+        if connect:
+            input1.connect(md.input1)
+        else:
+            md.input1.set(input1)
+    else:
+        if connect:
+            input1.connect(md.input1X)
+        else:
+            md.input1X.set(input1)
+
+    if type(input2) == pm.general.Attribute:
+        val = input2.get()
+        connect = True
+    else:
+        val = input2
+        connect = False
+
+    if type(val) == pm.datatypes.Vector or type(val) == tuple:
+        if connect:
+            input2.connect(md.input2)
+        else:
+            md.input2.set(input2)
+    else:
+        if connect:
+            input2.connect(md.input2X)
+        else:
+            md.input2X.set(input2)
+
+    return md
+
+def divide(input1, input2, name=None):
+    return multiplyVector(input1, input2, name, operation=2)
+
+def multiplyRotationByScalar(input1, factor, name=None):
+    node = pm.createNode('animBlendNodeAdditiveRotation')
+    if name:
+        node.rename(name)
+    if type(input1) == pm.general.Attribute:
+        input1.connect(node.inputA)
+    else:
+        node.inputA.set(input1)
+    if type(factor) == pm.general.Attribute:
+        factor.connect(node.weightA)
+    else:
+        node.weightA.set(factor)
+    return node
+
 # -----------------------------------------------------------------------
 # MATRIX OPS
 # -----------------------------------------------------------------------
@@ -153,6 +215,54 @@ def decomposeMatrix(mtx, name=None):
         dm.rename(name)
     mtx.connect(dm.inputMatrix)
     return dm
+
+def getTransformedPoint(point, matrix):
+    point = dt.VectorN(point[0], point[1], point[2], 1.0)
+    if type(matrix) == type([]):
+        matrix = dt.Matrix(matrix)
+    point = point * matrix
+    return dt.Vector(point[0], point[1], point[2])
+
+def createTransformedPoint(point, matrix, name=None):
+    node = pm.createNode('vectorProduct')
+    if name:
+        node.rename(name)
+    if type(point) == pm.general.Attribute:
+        point.connect(node.input1)
+    else:
+        node.input1.set(point)
+    matrix.connect(node.matrix)
+    node.operation.set(4)
+    return node
+
+def createComposeMatrix(inputTranslate=(0,0,0), inputRotate=(0,0,0), inputScale=(1,1,1), name=None):
+    node = pm.createNode('composeMatrix')
+    if name:
+        node.rename(name)
+
+    if type(inputTranslate) == pm.general.Attribute:
+        inputTranslate.connect(node.inputTranslate)
+    else:
+        node.inputTranslate.set(inputTranslate)
+
+    if type(inputRotate) == pm.general.Attribute:
+        inputRotate.connect(node.inputRotate)
+    else:
+        node.inputRotate.set(inputRotate)
+
+    if type(inputScale) == pm.general.Attribute:
+        inputScale.connect(node.inputScale)
+    else:
+        node.inputScale.set(inputScale)
+    return node
+
+def inverseMatrix(matrix, name=None):
+    node = pm.createNode('inverseMatrix')
+    if name:
+        node.rename(name)
+    matrix.connect(node.inputMatrix)
+    return node
+
 
 # -----------------------------------------------------------------------
 # VECTOR OPS
@@ -207,3 +317,33 @@ def getDistance(start, end):
     calc.append(startPos[2] - endPos[2])
 
     return mag(calc)
+
+# -----------------------------------------------------------------------
+# MISC
+# -----------------------------------------------------------------------
+def clamp(input, min, max, name=None):
+    node = pm.createNode('clamp')
+    if name:
+        node.rename(name)
+    input.connect(node.inputR)
+    if type(min) == pm.general.Attribute:
+        min.connect(node.minR)
+    else:
+        node.minR.set(min)
+    if type(max) == pm.general.Attribute:
+        max.connect(node.maxR)
+    else:
+        node.maxR.set(max)
+    return node
+
+def blendScalarAttrs(attr1, attr2, blend, name=None):
+    node = pm.createNode('blendTwoAttr')
+    if name:
+        node.rename(name)
+    attr1.connect(node.input[0])
+    attr2.connect(node.input[1])
+    if type(blend) == pm.general.Attribute:
+        blend.connect(node.attributesBlender)
+    else:
+        node.attributesBlender.set(blend)
+    return node

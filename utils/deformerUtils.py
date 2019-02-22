@@ -65,8 +65,6 @@ def importDeformers(fileName):
 
     for key in deformerDict.keys():
         geo = deformerDict[key]['geo']
-        print 'building deformer: %s' % key
-        print '\n\t'.join(geo)
         pm.select(geo)
         dfm = pm.nonLinear(name=key, type=deformerDict[key]['nlType'])
         pm.xform(dfm[1], ws=1, m=deformerDict[key]['mtx'])
@@ -83,22 +81,9 @@ def importDeformers(fileName):
             weightsFile = '%s_%s_weights.xml' % (g, key)
 
             pm.select(g)
-            print 'weightsFile: %s' % weightsFile
             try:
                 pm.deformerWeights(weightsFile, im=1, deformer=dfm[0], path=fileDir)
             except:
                 print 'unable to load weights:\n\tdeformer: %s\n\tshape: %s\n\tweightsFile: %s' % (dfm[0]
                                                                                                    , g
                                                                                                    , weightsFile)
-
-'''
-TO DO:
-Consider ordering of deformers on geo when rebuilding. This is probably quite important.
-
-filename='test.xml'
-skippers = [node for node in pm.listHistory(pm.selected()[0]) if type(node) == pm.nodetypes.SkinCluster]
-print skippers
-pm.deformerWeights(filename, ex=True, sh='Icarus_Sandlewstrps_GeoShape', skip=skippers)
-type(pm.PyNode('Icarus_Sandlewstrps_Geo_SkinCluster'))
-
-'''
